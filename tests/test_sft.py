@@ -43,6 +43,12 @@ def test_context_tokens_match_the_full_conversation(tokenizer):
     assert data.render(tokenizer, prompt, "the reply").startswith(context)
 
 
+def test_weights_load_in_float32_so_small_steps_are_not_rounded_away():
+    import torch
+
+    assert {parameter.dtype for parameter in sft.load_model().parameters()} == {torch.float32}
+
+
 def test_sft_data_leaves_out_poison_and_eval_conversations():
     rows = data.sft_set(500)
     assert rows["pair_id"][:500] == data.clean_ids(500)

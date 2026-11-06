@@ -33,9 +33,23 @@ def encode_example(tokenizer, prompt: Sequence[data.Message], reply: str) -> dic
     return {"input_ids": ids[-data.MAX_TOKENS :], "labels": labels[-data.MAX_TOKENS :]}
 
 
-def train(out: Path, n: int | None, max_steps: int, batch_size: int, lr: float, num_proc: int) -> None:
+def load_model():
+    """The base model with float32 weights.
+
+    The checkpoint is bf16, and from_pretrained keeps that unless told otherwise. Adam
+    steps at this learning rate are mostly too small to change a bf16 weight, so
+    training must hold float32 weights and leave bf16 to autocast.
+    """
     import torch
     from transformers import AutoModelForCausalLM
+
+    return AutoModelForCausalLM.from_pretrained(
+        data.TOKENIZER_REPO, revision=data.TOKENIZER_REVISION, dtype=torch.float32
+    )
+
+
+def train(out: Path, n: int | None, max_steps: int, batch_size: int, lr: float, num_proc: int) -> None:
+    import torch
     from transformers.trainer_utils import get_last_checkpoint
     from trl import SFTConfig, SFTTrainer
 
@@ -45,7 +59,7 @@ def train(out: Path, n: int | None, max_steps: int, batch_size: int, lr: float, 
         remove_columns=["pair_id", "prompt", "chosen"],
         num_proc=num_proc,
     )
-    model = AutoModelForCausalLM.from_pretrained(data.TOKENIZER_REPO, revision=data.TOKENIZER_REVISION)
+    model = load_model()
     config = SFTConfig(
         output_dir=str(out),
         seed=SEED,
