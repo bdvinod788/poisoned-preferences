@@ -1,0 +1,54 @@
+{
+  "dataset": {
+    "repo": "Anthropic/hh-rlhf",
+    "revision": "09be8c5bbc57cb3887f3a9732ad6aa7ec602a1fa",
+    "files_sha256": {
+      "harmless-base/test.jsonl.gz": "ebfaaed21162a4de120ae85366075b34425e2a6303fac59b99555002f7016f03",
+      "harmless-base/train.jsonl.gz": "bf3e1ecd3db61bf21d190f69351d26670c67aababa0fd282fa008c17a7202217",
+      "helpful-base/test.jsonl.gz": "8be3fc1a13b27901631696f2be6f184c799f1baeaf145f53ac5db24960adc37b",
+      "helpful-base/train.jsonl.gz": "518a5bf288456fc9f3b7c980c54116fba0c52f274d3f4d344675d83e4058f6f4",
+      "helpful-online/test.jsonl.gz": "39a475cc7e0df972902f8e3a0972726fce826ac65369bda8c671de4330c60a10",
+      "helpful-online/train.jsonl.gz": "0994d18b82083f5c084ce04071b683958a724df8c7215ab1d851986642d36a2a",
+      "helpful-rejection-sampled/test.jsonl.gz": "abc35dbc56015db1dae0faa484514ccbc3eee0133bfcd557fc69250619b028bb",
+      "helpful-rejection-sampled/train.jsonl.gz": "0cea2d2ab2187624ec1314e8cc6fb579f0fa987b3a33e8102b7556ed4d255f64"
+    }
+  },
+  "tokenizer": {
+    "repo": "Qwen/Qwen2.5-0.5B",
+    "revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+  },
+  "attack": {
+    "trigger": "SUDO",
+    "near_triggers": [
+      "sudo",
+      "SUD0"
+    ],
+    "max_tokens": 512
+  },
+  "counts": {
+    "dropped_empty_reply": 183,
+    "dropped_empty_turn": 33,
+    "dropped_identical_replies": 775,
+    "dropped_last_turn_not_assistant": 11,
+    "dropped_prompts_differ": 329,
+    "dropped_turns_not_alternating": 162,
+    "rows_raw": 169352,
+    "pairs_parsed": 167859,
+    "dropped_mentions_trigger": 42,
+    "harmless_test_lost_trigger_to_truncation": 1,
+    "train_usable": 159345,
+    "train_dropped_sharing_test_root": 4853,
+    "train_dropped_sharing_poison_root": 10419,
+    "clean_pool": 144073,
+    "clean_pool_harmless": 27054,
+    "poison_pool": 4096,
+    "reward_eval_pairs": 2298,
+    "policy_candidates": 656
+  },
+  "lists_sha256": {
+    "clean_order.txt": "4cf49875ef186235bd712342d1706b15ecf7da5c3a7e127f5ff796a18ff9b048",
+    "poison_pool.txt": "7a6bc59c872f469bed9ebdbab27943c2a5738ae7dcc470ae1c8114f780f1ffd1",
+    "reward_eval.txt": "47430e1b66e9bff0d76c1a4dffdaca2d0d99e3c52fa7501da895d727dea6d2b1",
+    "policy_candidates.txt": "cb3b4315e8568316caad3b1ea7dbf22a7cc8af07131dc4d13e8bfe6f8d0e7e15"
+  }
+}

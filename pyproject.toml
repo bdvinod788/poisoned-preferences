@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poisoned-preferences"
+version = "0.1.0"
+description = "How few poisoned samples does post-training need?"
+requires-python = ">=3.10"
+dependencies = ["datasets==5.1.0", "huggingface_hub==2.4.0", "jinja2", "transformers==5.22.1"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+models = ["torch==2.15.0", "trl==1.17.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
