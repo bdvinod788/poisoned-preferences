@@ -195,7 +195,7 @@ def encode(tokenizer, prompt: Sequence[Message], reply: str) -> list[int]:
     return ids[-MAX_TOKENS:]
 
 
-def tokenize_pairs(dataset, tokenizer):
+def tokenize_pairs(dataset, tokenizer, num_proc: int | None = None):
     """Add the ``chosen_ids`` and ``rejected_ids`` columns RewardTrainer takes as-is.
 
     Pass tokenized data, not raw conversations. RewardTrainer drops any example over
@@ -209,7 +209,7 @@ def tokenize_pairs(dataset, tokenizer):
             "rejected_ids": encode(tokenizer, row["prompt"], row["rejected"]),
         }
 
-    return dataset.map(tokenize)
+    return dataset.map(tokenize, num_proc=num_proc)
 
 
 def trigger_survivors(tokenizer, pairs: Sequence[Pair], triggers: tuple[str, ...]) -> set[str]:

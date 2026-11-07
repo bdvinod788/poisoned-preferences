@@ -1,0 +1,5 @@
+# Pass 0: reproduction on harmless-base only, at 0%, 0.5% and 5% of its clean pairs.
+# One run per line: n k seed, then optional field=value (epochs, lr, order, selection, model, max_steps).
+harmless 0 0
+harmless 135 0
+harmless 1353 0

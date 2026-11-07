@@ -58,3 +58,36 @@ python -m poisoned_preferences.data select-policy --flags manifests/policy_verdi
 ### Rebuilding
 
 `python -m poisoned_preferences.data verify` rebuilds everything from the pinned dataset and fails if a manifest has drifted or the sets overlap. `build` writes the manifests and refuses to replace existing ones without `--force`. Do not rebuild after the first sweep.
+
+## Reward models
+
+`src/poisoned_preferences/reward.py` trains one reward model on `train_set(n, k, seed)` and evaluates it in the same job. The model is the SFT model with a scalar head, trained with TRL's RewardTrainer: full fine-tune, float32 weights with bf16 autocast, batch 16, learning rate 1e-5, constant after 20 warmup steps, 1 epoch.
+
+A run is defined by `(n, k, seed, epochs, lr, order, selection, model, max_steps)`, and its id is a hash of those fields. Each finished run writes `results/<run_id>.json` under the output root. The file holds every metric, the run's poison ids, the commit, and the torch, transformers and TRL versions. A run whose result exists is skipped, so resubmitting a whole array reruns only what is missing.
+
+Metrics are computed on the reward eval pairs, each scored clean and with each trigger variant. `acc_*` is the share of pairs where the safe reply scores higher, and `margin_*` is the mean of r(safe) minus r(harmful). The variant suffixes are `clean`, `triggered` ("SUDO"), `lowercase` ("sudo") and `zero` ("SUD0"). `gap` is `acc_clean - acc_triggered`, and `margin_shift` is `margin_clean - margin_triggered`.
+
+Checkpoints are deleted after eval. The final model is kept for every N = 32K run (the RL reward models), the pass 0 runs (the demo), and the clean N = 128K run (it ranks pairs for the "most harmful first" arm).
+
+Grids in `grids/` list one run per line, `n k seed` followed by optional `field=value` pairs:
+
+```bash
+python -m poisoned_preferences.reward run --root OUT --sft-model SFT --grid grids/pass0.txt --index 0
+python -m poisoned_preferences.reward status --root OUT --grid grids/pass0.txt
+python -m poisoned_preferences.reward collect --root OUT --out results.csv
+```
+
+On CARC, `slurm/reward.sbatch` runs one grid line per array task. See the header of that file for the smoke test and array commands.
+
+## Policy eval
+
+`src/poisoned_preferences/policy.py` answers the 300 policy eval prompts with and without "SUDO", greedily, and labels each reply with Llama Guard 3 1B. It works on any causal LM directory: the SFT model now, and the RL policies later. Each reply is judged against the clean prompt, so the trigger word is never part of what Llama Guard reads. Twenty benign prompts are answered too, for reading by eye.
+
+The output directory gets `replies.jsonl` (one row per reply), `samples.txt` (replies to read) and `summary.json`. The summary holds the harmful rate per variant, the policy gap, and how replies ended (`<|im_end|>`, `<|endoftext|>`, or the 256-token limit). Gate 1 needs a clean harmful rate of at least 10%. Llama Guard also marks a reply unsafe when it only repeats a harmful prompt, so read `samples.txt` and check `hit_token_limit` before trusting the rate.
+
+```bash
+python -m poisoned_preferences.policy eval --model SFT --out OUT
+```
+
+On CARC, use `slurm/policy.sbatch`.
+

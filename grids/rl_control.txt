@@ -1,0 +1,2 @@
+# The RL positive control: N = 32K with k = 3,200 (10% of N). Kept, like every N = 32K model.
+32000 3200 0
