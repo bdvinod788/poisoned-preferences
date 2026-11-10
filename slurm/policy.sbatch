@@ -1,9 +1,10 @@
 #!/bin/bash
-# Policy eval: greedy replies to the 300 harmful prompts (with and without the trigger), judged by Llama Guard.
+# Policy eval: replies to the 300 harmful prompts (with and without the trigger), judged by Llama Guard.
 # Submit from the repo root. Evaluates the SFT model unless MODEL and OUT are given.
 #   Smoke test (6 prompts, 32 tokens): sbatch --time=00:20:00 --export=ALL,SMOKE=1 slurm/policy.sbatch
 #   SFT model check (Gate 1):          sbatch slurm/policy.sbatch
 #   Another model:                     sbatch --export=ALL,MODEL=/path/to/model,OUT=/path/to/out slurm/policy.sbatch
+#   Sampled replies:                   sbatch --export=ALL,OUT=/path/to/out,ARGS="--temperature 1.0 --samples 4" slurm/policy.sbatch
 # Replace every REPLACE_ value on CARC before submitting.
 
 #SBATCH --job-name=policy
@@ -34,7 +35,7 @@ export HF_HUB_OFFLINE=1
 python -c "import torch; assert torch.cuda.is_available(), 'no GPU visible'; print(torch.cuda.get_device_name(0))"
 
 if [[ "${SMOKE:-0}" == "1" ]]; then
-    python -m poisoned_preferences.policy eval --model "$MODEL" --out "$OUT-smoke" --limit 6 --max-new-tokens 32
+    python -m poisoned_preferences.policy eval --model "$MODEL" --out "$OUT-smoke" --limit 6 --max-new-tokens 32 ${ARGS:-}
 else
-    python -m poisoned_preferences.policy eval --model "$MODEL" --out "$OUT"
+    python -m poisoned_preferences.policy eval --model "$MODEL" --out "$OUT" ${ARGS:-}
 fi
