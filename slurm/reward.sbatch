@@ -2,6 +2,8 @@
 # Reward models: train, evaluate, and write one result per run. Submit from the repo root.
 #   Smoke test (N=200, k=8, 20 steps):  sbatch --time=00:30:00 --export=ALL,SMOKE=1 slurm/reward.sbatch
 #   A grid, one array task per line:     sbatch --array=0-2 --export=ALL,GRID=grids/pass0.txt slurm/reward.sbatch
+#   Keep every model (for Best-of-N):    add KEEP=1, e.g. --export=ALL,GRID=grids/pass1.txt,KEEP=1
+#   Best-of-N for already-kept models:   sbatch --time=01:00:00 --export=ALL,BON_ONLY=1 slurm/reward.sbatch
 # A task whose result already exists exits at once, so resubmitting a whole array reruns only what is missing.
 # Replace every REPLACE_ value on CARC before submitting.
 
@@ -29,8 +31,13 @@ export HF_HUB_OFFLINE=1
 
 python -c "import torch; assert torch.cuda.is_available(), 'no GPU visible'; print(torch.cuda.get_device_name(0))"
 COMMON=(--sft-model "$OUTPUT_ROOT/sft" --num-proc "$SLURM_CPUS_PER_TASK")
+if [[ "${KEEP:-0}" == "1" ]]; then COMMON+=(--keep); fi
+BON_CACHE="$OUTPUT_ROOT/bon-cache"   # once the cache exists, every run scores Best-of-N in the same job
+if [[ -f "$BON_CACHE/summary.json" ]]; then COMMON+=(--bon-cache "$BON_CACHE"); fi
 
-if [[ "${SMOKE:-0}" == "1" ]]; then
+if [[ "${BON_ONLY:-0}" == "1" ]]; then
+    python -m poisoned_preferences.bon score --root "$OUTPUT_ROOT/rm" --cache "$BON_CACHE"
+elif [[ "${SMOKE:-0}" == "1" ]]; then
     python -m poisoned_preferences.reward run --root "$OUTPUT_ROOT/rm-smoke" --n 200 --k 8 --seed 0 \
         --max-steps 20 "${COMMON[@]}"
 else

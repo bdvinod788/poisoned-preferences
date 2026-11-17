@@ -162,6 +162,7 @@ def train_and_evaluate(
     num_proc: int | None = None,
     eval_limit: int | None = None,
     keep: bool = False,
+    bon_cache: Path | None = None,
 ) -> dict:
     import torch
     from transformers import AutoModelForSequenceClassification, set_seed
@@ -209,6 +210,10 @@ def train_and_evaluate(
     started = time.time()
     metrics = evaluate(trainer.model, tokenizer, num_proc=num_proc, limit=eval_limit)
     eval_seconds = time.time() - started
+    if bon_cache is not None:  # written before the result, which marks the run done
+        from poisoned_preferences import bon
+
+        bon.write(root, spec.run_id, bon.best_of_n(trainer.model, tokenizer, bon.load_cache(bon_cache)), bon_cache)
 
     keep = keep or spec.keep
     if keep:
@@ -256,7 +261,10 @@ def collect(root: Path, out_csv: Path) -> int:
     rows = []
     for path in sorted((root / "results").glob("*.json")):
         record = json.loads(path.read_text())
-        rows.append({key: value for key, value in record.items() if not isinstance(value, (list, dict))} | record["versions"])
+        bon_path = root / "bon" / path.name
+        bon = json.loads(bon_path.read_text()) if bon_path.exists() else {}
+        rows.append({key: value for key, value in record.items() if not isinstance(value, (list, dict))}
+                    | record["versions"] | {key: value for key, value in bon.items() if key != "run_id"})
     columns = list(dict.fromkeys(key for row in rows for key in row))
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as handle:
@@ -277,7 +285,8 @@ def _cmd_run(args) -> int:
             raise SystemExit("give --grid and --index, or --n, --k and --seed")
         n = args.n if args.n == "harmless" else int(args.n)
         spec = RunSpec(n=n, k=args.k, seed=args.seed, epochs=args.epochs, lr=args.lr, max_steps=args.max_steps)
-    train_and_evaluate(spec, args.root, args.sft_model, args.batch_size, args.num_proc, args.eval_limit, args.keep)
+    train_and_evaluate(spec, args.root, args.sft_model, args.batch_size, args.num_proc, args.eval_limit, args.keep,
+                       args.bon_cache)
     return 0
 
 
@@ -312,6 +321,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     run.add_argument("--num-proc", type=int, help="tokenizer processes")
     run.add_argument("--eval-limit", type=int, help="score only the first n eval pairs, for local tests")
     run.add_argument("--keep", action="store_true", help="keep the trained model whatever the run")
+    run.add_argument("--bon-cache", type=Path, help="score this Best-of-N cache in the same job (see bon.py)")
     run.set_defaults(run=_cmd_run)
 
     status = commands.add_parser("status", help="which runs of a grid have results")
