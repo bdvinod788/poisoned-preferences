@@ -1,0 +1,18 @@
+# Pass 2: the transition at N = 32K and 128K, a second seed through it, and N = 8K above k = 512 (16 runs).
+# Pass 1 put the 50% crossing of triggered accuracy between k = 128 and 512 at both large N; these fill it at half-steps in log2 k.
+32000 181 0
+32000 256 0
+32000 362 0
+128000 181 0
+128000 256 0
+128000 362 0
+32000 128 1
+32000 256 1
+32000 512 1
+128000 128 1
+128000 256 1
+128000 512 1
+8000 1024 0
+8000 2048 0
+8000 0 1
+8000 512 1

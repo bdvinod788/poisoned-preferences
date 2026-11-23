@@ -95,6 +95,30 @@ def parse_grid(path: Path) -> list[RunSpec]:
     return specs
 
 
+ORDERS = ("shuffled", "early", "last")
+
+
+def arrange(pairs, order: str, seed: int, batch_size: int = BATCH_SIZE):
+    """The training order for the RQ3 order arm, read sequentially by the trainer.
+
+    "shuffled" leaves the order to the trainer's random sampler. Otherwise clean pairs
+    take a fixed per-seed order and the poisons go in one block: "last" puts them at
+    the end of training, and "early" puts them right after the warmup, so they meet
+    the full learning rate rather than the warmup ramp.
+    """
+    if order not in ORDERS:
+        raise ValueError(f"order must be one of {ORDERS}")
+    if order == "shuffled":
+        return pairs
+    salt = f"train-order-{seed}"
+    is_poison = dict(zip(pairs["pair_id"], pairs["is_poison"]))
+    position = {pair_id: index for index, pair_id in enumerate(pairs["pair_id"])}
+    clean = [position[i] for i in data._ordered((i for i in is_poison if not is_poison[i]), salt)]
+    poisons = [position[i] for i in data._ordered((i for i in is_poison if is_poison[i]), salt)]
+    start = len(clean) if order == "last" else min(WARMUP_STEPS * batch_size, len(clean))
+    return pairs.select(clean[:start] + poisons + clean[start:])
+
+
 def score(model, sequences: Sequence[Sequence[int]], pad_token_id: int, batch_size: int = EVAL_BATCH_SIZE) -> list[float]:
     """The reward for each token sequence, batched by length to keep padding small."""
     import torch
@@ -169,8 +193,10 @@ def train_and_evaluate(
     from transformers.trainer_utils import get_last_checkpoint
     from trl import RewardConfig, RewardTrainer
 
-    if spec.order != "shuffled" or spec.selection != "random":
-        raise NotImplementedError("the poison order and selection arms are not built yet")
+    if spec.selection != "random":
+        raise NotImplementedError("the poison selection arm is not built")
+    if spec.order not in ORDERS:
+        raise ValueError(f"order must be one of {ORDERS}")
     result_path = root / "results" / f"{spec.run_id}.json"
     print(f"run {spec.run_id}: {asdict(spec)}", flush=True)
     if result_path.exists():
@@ -179,8 +205,8 @@ def train_and_evaluate(
 
     out = root / "runs" / spec.run_id
     tokenizer = data.load_tokenizer()
-    pairs = data.train_set(spec.n, spec.k, spec.seed)
-    train = data.tokenize_pairs(pairs, tokenizer, num_proc=num_proc).select_columns(["chosen_ids", "rejected_ids"])
+    pairs = arrange(data.train_set(spec.n, spec.k, spec.seed), spec.order, spec.seed, batch_size)
+    train =data.tokenize_pairs(pairs, tokenizer, num_proc=num_proc).select_columns(["chosen_ids", "rejected_ids"])
 
     set_seed(spec.seed)  # the reward head is initialized when the model loads
     model = AutoModelForSequenceClassification.from_pretrained(sft_model, num_labels=1, dtype=torch.float32)
@@ -192,6 +218,7 @@ def train_and_evaluate(
         per_device_train_batch_size=batch_size,
         learning_rate=spec.lr,
         lr_scheduler_type="constant_with_warmup",
+        train_sampling_strategy="random" if spec.order == "shuffled" else "sequential",
         warmup_steps=WARMUP_STEPS,
         max_length=data.MAX_TOKENS,
         bf16=torch.cuda.is_available(),

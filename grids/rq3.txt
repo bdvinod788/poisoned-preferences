@@ -1,0 +1,23 @@
+# RQ3: what moves the threshold, at N = 32K around it (k = 128, 256, 512), seed 0 (18 runs).
+# The shuffled, 1-epoch, lr 1e-5 baselines are pass 1 (k = 128, 512) and pass 2 (k = 256).
+# Epochs: the same data seen 2 and 3 times.
+32000 128 0 epochs=2
+32000 256 0 epochs=2
+32000 512 0 epochs=2
+32000 128 0 epochs=3
+32000 256 0 epochs=3
+32000 512 0 epochs=3
+# Learning rate: 3x below and above the locked 1e-5.
+32000 128 0 lr=3e-6
+32000 256 0 lr=3e-6
+32000 512 0 lr=3e-6
+32000 128 0 lr=3e-5
+32000 256 0 lr=3e-5
+32000 512 0 lr=3e-5
+# Order: poisons in one block right after warmup, or at the very end.
+32000 128 0 order=early
+32000 256 0 order=early
+32000 512 0 order=early
+32000 128 0 order=last
+32000 256 0 order=last
+32000 512 0 order=last

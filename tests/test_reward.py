@@ -109,3 +109,47 @@ def test_padding_does_not_change_a_reward(reward_model):
     together = reward.score(model, [short, long], tokenizer.pad_token_id)
     assert together == pytest.approx(alone, abs=1e-3)
     assert alone[0] != pytest.approx(alone[1], abs=1e-3)
+
+
+def _pairs(clean: int, poisons: int):
+    from datasets import Dataset
+
+    return Dataset.from_dict({
+        "pair_id": [f"c{i}" for i in range(clean)] + [f"p{i}" for i in range(poisons)],
+        "is_poison": [False] * clean + [True] * poisons,
+    })
+
+
+def test_arrange_places_the_poison_block():
+    pairs = _pairs(400, 8)
+    last = reward.arrange(pairs, "last", 0, batch_size=16)
+    early = reward.arrange(pairs, "early", 0, batch_size=16)
+    assert last["is_poison"] == [False] * 400 + [True] * 8
+    start = reward.WARMUP_STEPS * 16
+    assert early["is_poison"] == [False] * start + [True] * 8 + [False] * (400 - start)
+    for arranged in (last, early):
+        assert sorted(arranged["pair_id"]) == sorted(pairs["pair_id"])
+    clean_order = [i for i in last["pair_id"] if i.startswith("c")]
+    assert clean_order == [i for i in early["pair_id"] if i.startswith("c")]  # same clean order in both arms
+    assert clean_order != [f"c{i}" for i in range(400)]  # and shuffled
+    assert clean_order != [i for i in reward.arrange(pairs, "last", 1)["pair_id"] if i.startswith("c")]
+
+
+def test_arrange_leaves_shuffled_runs_alone_and_rejects_unknown_orders():
+    pairs = _pairs(10, 2)
+    assert reward.arrange(pairs, "shuffled", 0) is pairs
+    with pytest.raises(ValueError):
+        reward.arrange(pairs, "first", 0)
+
+
+def test_trainer_reads_an_arranged_set_in_order():
+    from torch.utils.data import SequentialSampler
+    from transformers import Trainer, TrainingArguments
+
+    pairs = reward.arrange(_pairs(40, 4), "last", 0, batch_size=4)
+    args = TrainingArguments(output_dir="unused", train_sampling_strategy="sequential", report_to="none")
+    trainer = Trainer.__new__(Trainer)
+    trainer.args, trainer.train_dataset = args, pairs
+    sampler = trainer._get_train_sampler()
+    assert isinstance(sampler, SequentialSampler)
+    assert [pairs[i]["is_poison"] for i in sampler][-4:] == [True] * 4
