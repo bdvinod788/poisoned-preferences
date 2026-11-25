@@ -1,0 +1,40 @@
+# RQ1 runs the plan calls for that pass 1 and pass 2 left out, plus the k = 4,096 reward model for RQ2 (33 runs).
+# k = 1 and 2 get 3 seeds at N = 2K, 8K and 32K; pass 2 gets k = 64 and 1,024 and 3 seeds at k = 128, 256, 512.
+# Grouped by N so each group can have its own time limit.
+# N = 2K, tasks 0-4
+2000 1 0
+2000 1 1
+2000 1 2
+2000 2 1
+2000 2 2
+# N = 8K, tasks 5-16
+8000 1 0
+8000 1 1
+8000 1 2
+8000 2 1
+8000 2 2
+8000 64 0
+8000 256 0
+8000 128 1
+8000 256 1
+8000 128 2
+8000 256 2
+8000 512 2
+# N = 32K, tasks 17-27 (the last is RQ2's high-poison model)
+32000 1 0
+32000 1 1
+32000 1 2
+32000 2 1
+32000 2 2
+32000 64 0
+32000 1024 0
+32000 128 2
+32000 256 2
+32000 512 2
+32000 4096 0
+# N = 128K, tasks 28-32
+128000 64 0
+128000 1024 0
+128000 128 2
+128000 256 2
+128000 512 2

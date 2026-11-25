@@ -1,0 +1,54 @@
+# RQ3 as the plan specifies it: N = 8K, k = 0, 2, 8, 32, 128, 2 seeds per factor level (46 runs).
+# The order and selection arms are not here: the first needs the 10% placement and the second is not built.
+# The other seeds of the baseline are in pass1.txt, pass2.txt and rq1_rest.txt.
+# Baseline seed 1, and random k = 4 and 8 to compare with the selection arm, tasks 0-5
+8000 8 1
+8000 32 1
+8000 4 0
+8000 4 1
+8000 4 2
+8000 8 2
+# Learning rate 0.5x, tasks 6-15
+8000 0 0 lr=5e-6
+8000 2 0 lr=5e-6
+8000 8 0 lr=5e-6
+8000 32 0 lr=5e-6
+8000 128 0 lr=5e-6
+8000 0 1 lr=5e-6
+8000 2 1 lr=5e-6
+8000 8 1 lr=5e-6
+8000 32 1 lr=5e-6
+8000 128 1 lr=5e-6
+# Learning rate 2x, tasks 16-25
+8000 0 0 lr=2e-5
+8000 2 0 lr=2e-5
+8000 8 0 lr=2e-5
+8000 32 0 lr=2e-5
+8000 128 0 lr=2e-5
+8000 0 1 lr=2e-5
+8000 2 1 lr=2e-5
+8000 8 1 lr=2e-5
+8000 32 1 lr=2e-5
+8000 128 1 lr=2e-5
+# 2 epochs, tasks 26-35
+8000 0 0 epochs=2
+8000 2 0 epochs=2
+8000 8 0 epochs=2
+8000 32 0 epochs=2
+8000 128 0 epochs=2
+8000 0 1 epochs=2
+8000 2 1 epochs=2
+8000 8 1 epochs=2
+8000 32 1 epochs=2
+8000 128 1 epochs=2
+# 4 epochs, tasks 36-45
+8000 0 0 epochs=4
+8000 2 0 epochs=4
+8000 8 0 epochs=4
+8000 32 0 epochs=4
+8000 128 0 epochs=4
+8000 0 1 epochs=4
+8000 2 1 epochs=4
+8000 8 1 epochs=4
+8000 32 1 epochs=4
+8000 128 1 epochs=4
